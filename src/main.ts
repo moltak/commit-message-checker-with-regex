@@ -18,50 +18,56 @@
 /**
  * Imports
  */
-import * as core from '@actions/core'
-import * as inputHelper from './input-helper'
-import * as commitMessageChecker from './commit-message-checker'
+import * as core from '@actions/core';
+import * as inputHelper from './input-helper';
+import * as commitMessageChecker from './commit-message-checker';
 
 /**
  * Main function
  */
-async function run(): Promise<void> {
+async function run(): Promise<number> {
   try {
-    const onePassAllPass = core.getInput('one_pass_all_pass')
-    const commitsString = core.getInput('commits')
-    const commits = JSON.parse(commitsString)
-    const checkerArguments = inputHelper.getInputs()
+    const commitsString = core.getInput('commits');
+    const commits = JSON.parse(commitsString);
+    const checkerArguments = inputHelper.getInputs();
 
-    const preErrorMsg = core.getInput('pre_error')
-    const postErrorMsg = core.getInput('post_error')
+    for (const { commit, sha } of commits) {
+      inputHelper.checkArgs(checkerArguments);
+      const foundCommitMessage = commitMessageChecker.checkCommitMessages(
+        checkerArguments,
+        commit.message,
+      );
 
-    const failed = []
-
-    for (const {commit, sha} of commits) {
-      inputHelper.checkArgs(checkerArguments)
-      let errMsg = commitMessageChecker.checkCommitMessages(checkerArguments, commit.message)
-
-      if (errMsg) {
-        failed.push({sha, message: errMsg})
+      if (foundCommitMessage) {
+        const summary = inputHelper.genOutput({
+          sha,
+          message: foundCommitMessage,
+        });
+        core.setOutput('RESULT', 'NEED_REACTION');
+        core.info(summary);
+        await makeReaction();
+        return 0;
       }
     }
 
-    if (onePassAllPass === 'true' && commits.length > failed.length) {
-      return
-    }
-
-    if (failed.length > 0) {
-      const summary = inputHelper.genOutput(failed, preErrorMsg, postErrorMsg)
-      core.setFailed(summary)
-    }
-
+    core.setOutput('RESULT', 'NEED_REACTION');
+    return 0;
   } catch (error) {
-    core.error(error)
-    core.setFailed(error.message)
+    // @ts-ignore
+    core.info(error);
+    // @ts-ignore
+    core.error(error);
+    // @ts-ignore
+    core.setFailed(error.message);
+    return -1;
   }
+}
+
+async function makeReaction() {
+  console.log('makeReaction');
 }
 
 /**
  * Main entry point
  */
-run()
+run();
