@@ -18,16 +18,16 @@
 /**
  * Imports
  */
-import * as core from '@actions/core'
+import * as core from '@actions/core';
 
 /**
  * Interface used as arguments for the check function containing the pattern,
  * error message and the messages.
  */
 export interface ICheckerArguments {
-  pattern: string
-  flags: string
-  error: string
+  pattern: string;
+  flags: string;
+  error: string;
 }
 
 /**
@@ -41,9 +41,9 @@ export function checkCommitMessages(
   message: string,
 ): string {
   if (checkMessage(message, args.pattern, args.flags)) {
-    return ''
+    return '';
   } else {
-    return args.error
+    return args.error;
   }
 }
 
@@ -54,11 +54,11 @@ export function checkCommitMessages(
  * @param     pattern regex pattern for the check.
  * @returns   boolean
  */
-export  function checkMessage(
+export function checkMessage(
   message: string,
   pattern: string,
-  flags: string
+  flags: string,
 ): boolean {
-  const regex = new RegExp(pattern, flags)
-  return regex.test(message)
+  const regex = new RegExp(pattern, flags);
+  return regex.test(message);
 }

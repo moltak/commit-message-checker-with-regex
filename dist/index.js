@@ -112,32 +112,40 @@ const commitMessageChecker = __importStar(__webpack_require__(413));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const onePassAllPass = core.getInput('one_pass_all_pass');
             const commitsString = core.getInput('commits');
             const commits = JSON.parse(commitsString);
             const checkerArguments = inputHelper.getInputs();
-            const preErrorMsg = core.getInput('pre_error');
-            const postErrorMsg = core.getInput('post_error');
-            const failed = [];
             for (const { commit, sha } of commits) {
                 inputHelper.checkArgs(checkerArguments);
-                let errMsg = commitMessageChecker.checkCommitMessages(checkerArguments, commit.message);
-                if (errMsg) {
-                    failed.push({ sha, message: errMsg });
+                const foundCommitMessage = commitMessageChecker.checkCommitMessages(checkerArguments, commit.message);
+                if (foundCommitMessage) {
+                    const summary = inputHelper.genOutput({
+                        sha,
+                        message: foundCommitMessage,
+                    });
+                    core.setOutput('RESULT', 'NEED_REACTION');
+                    core.info(summary);
+                    yield makeReaction();
+                    return 0;
                 }
             }
-            if (onePassAllPass === 'true' && commits.length > failed.length) {
-                return;
-            }
-            if (failed.length > 0) {
-                const summary = inputHelper.genOutput(failed, preErrorMsg, postErrorMsg);
-                core.setFailed(summary);
-            }
+            core.setOutput('RESULT', 'NEED_REACTION');
+            return 0;
         }
         catch (error) {
+            // @ts-ignore
+            core.info(error);
+            // @ts-ignore
             core.error(error);
+            // @ts-ignore
             core.setFailed(error.message);
+            return -1;
         }
+    });
+}
+function makeReaction() {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log('makeReaction');
     });
 }
 /**
@@ -594,8 +602,6 @@ function getInputs() {
     result.pattern = core.getInput('pattern', { required: true });
     // Get flags
     result.flags = core.getInput('flags');
-    // Get error message
-    result.error = core.getInput('error', { required: true });
     return result;
 }
 exports.getInputs = getInputs;
@@ -613,15 +619,10 @@ function checkArgs(args) {
     if (chars !== '') {
         throw new Error(`FLAGS contains invalid characters "${chars}".`);
     }
-    if (args.error.length === 0) {
-        throw new Error(`ERROR not defined.`);
-    }
 }
 exports.checkArgs = checkArgs;
-function genOutput(commitInfos, preErrorMsg, postErrorMsg) {
-    const lines = commitInfos.map(function (info) { return `  ${info.sha}    ${info.message}`; });
-    const errors = `${lines.join('\n')}`;
-    return preErrorMsg + '\n\n' + errors + '\n\n' + postErrorMsg;
+function genOutput(info) {
+    return `  ${info.sha}    ${info.message}`;
 }
 exports.genOutput = genOutput;
 
